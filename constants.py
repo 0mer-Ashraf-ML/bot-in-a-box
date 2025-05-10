@@ -66,21 +66,9 @@ The output style should be consistent to input. No important information should 
 PROMPT_FOR_SUMMARY_VARIABLES = ('response')
 
  
-LLMS = ('gpt-3.5-turbo', 'gpt-4o-mini','gpt-4.1-nano')
+LLMS = ('gpt-4.1-nano','gpt-3.5-turbo', 'gpt-4o-mini')
 DEFAULT_LLM = LLMS[0]
 
 RETRIEVAL_METHOD = ("Vector store-backed", "MultiQueryRetriever", "Contextual compression")
 DEFAULT_RETRIEVAL_METHOD = RETRIEVAL_METHOD[0]
-
-llm_s = ChatOpenAI(temperature=0,
-                 max_tokens=1000,
-                 model='gpt-4.1-nano',
-                 request_timeout=120,
-                )
-
-llm_r = ChatOpenAI(temperature=0,
-                 max_tokens=1000,
-                 model='gpt-4o',
-                 request_timeout=120,
-                )
 

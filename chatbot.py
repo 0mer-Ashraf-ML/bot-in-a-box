@@ -86,14 +86,14 @@ class Chatbot:
             self.llm_s = ChatOpenAI(
                 temperature=llm_s.temperature,
                 max_tokens=llm_s.max_tokens,
-                model=llm_s.model_name,
+                model=self.llm_model_name,
                 request_timeout=llm_s.request_timeout,
                 openai_api_key=self.openai_api_key
             )
             self.llm_r = ChatOpenAI(
                 temperature=llm_r.temperature,
                 max_tokens=llm_r.max_tokens,
-                model=llm_r.model_name,
+                model="gpt-4.1-mini",
                 request_timeout=llm_r.request_timeout,
                 openai_api_key=self.openai_api_key
             )
