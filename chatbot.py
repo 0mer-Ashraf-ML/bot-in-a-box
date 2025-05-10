@@ -23,8 +23,6 @@ from langchain.retrievers.multi_query import MultiQueryRetriever
 from langchain.retrievers import ContextualCompressionRetriever
 from langchain.retrievers.document_compressors import LLMChainExtractor
 import constants
-from constants import llm_s,llm_r
-
 
 class Chatbot:
     def __init__(
