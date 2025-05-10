@@ -51,7 +51,8 @@ class Chatbot:
             llm_model=constants.DEFAULT_LLM,
             verbose=False,
             load_chatbot_from_dir=None,
-            memory_filename = f'memory_at_{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}.json'
+            memory_filename = f'memory_at_{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}.json',
+            openai_api_key=None
         ):
         self.documents = documents
         self.text_splitter_name = text_splitter
@@ -76,7 +77,28 @@ class Chatbot:
         self.load_chatbot_from_dir = load_chatbot_from_dir 
         self.retriever_method = retriever_method           
         self.summary_prompt = PromptTemplate(template=self.prompt_for_summary, input_variables=['response'])
-        self.summarize_chain = LLMChain(llm=llm_s,prompt=self.summary_prompt)
+        self.openai_api_key = openai_api_key
+        
+        # Use custom API key for llm_s and llm_r if provided
+        self.llm_s = llm_s
+        self.llm_r = llm_r
+        if self.openai_api_key and 'gpt' in llm_s.model_name:
+            self.llm_s = ChatOpenAI(
+                temperature=llm_s.temperature,
+                max_tokens=llm_s.max_tokens,
+                model=llm_s.model_name,
+                request_timeout=llm_s.request_timeout,
+                openai_api_key=self.openai_api_key
+            )
+            self.llm_r = ChatOpenAI(
+                temperature=llm_r.temperature,
+                max_tokens=llm_r.max_tokens,
+                model=llm_r.model_name,
+                request_timeout=llm_r.request_timeout,
+                openai_api_key=self.openai_api_key
+            )
+        
+        self.summarize_chain = LLMChain(llm=self.llm_s, prompt=self.summary_prompt)
         self.prompt_template = PromptTemplate(template=self.prompt_for_generation,
                                               input_variables=self.prompt_for_generation_variables)
         self.llm = self._get_llm()
@@ -127,7 +149,7 @@ class Chatbot:
     def _rephrase_query(self, query):
         prompt_temp = PromptTemplate(template=self.prompt_for_rephrase_query,
                                      input_variables=self.prompt_for_rephrase_query_variables)
-        prompt_chain = LLMChain(llm=llm_r, prompt=prompt_temp, verbose=self.verbose)
+        prompt_chain = LLMChain(llm=self.llm_r, prompt=prompt_temp, verbose=self.verbose)
         memory  = self.memory.load_memory_variables({})['chat_history']
         rephrased_query = prompt_chain.invoke({'memory': memory, 'query': query})
         print(rephrased_query['text'])
@@ -181,7 +203,10 @@ class Chatbot:
         if 'Google' in self.embedding_model_name:
             self.embeddings_model = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
         elif 'text-embedding' in self.embedding_model_name:
-            self.embeddings_model = OpenAIEmbeddings(model=self.embedding_model_name)
+            if self.openai_api_key:
+                self.embeddings_model = OpenAIEmbeddings(model=self.embedding_model_name, openai_api_key=self.openai_api_key)
+            else:
+                self.embeddings_model = OpenAIEmbeddings(model=self.embedding_model_name)
 
         if self.load_chatbot_from_dir:
             self.vectorstore_dir = self.load_chatbot_from_dir+'/vectorstore'
@@ -305,10 +330,17 @@ class Chatbot:
         if 'Google' in self.llm_model_name:
             llm = GoogleGenerativeAI(model="gemini-pro")
         else:
-            llm = ChatOpenAI(temperature=0,
-                             max_tokens=4000,
-                             model=self.llm_model_name,
-                             request_timeout=120)
+            if self.openai_api_key:
+                llm = ChatOpenAI(temperature=0,
+                                max_tokens=4000,
+                                model=self.llm_model_name,
+                                request_timeout=120,
+                                openai_api_key=self.openai_api_key)
+            else:
+                llm = ChatOpenAI(temperature=0,
+                                max_tokens=4000,
+                                model=self.llm_model_name,
+                                request_timeout=120)
         return llm
 
 
@@ -334,9 +366,16 @@ class Chatbot:
 
 
     @staticmethod
-    def load_chatbot(dir_path):
+    def load_chatbot(dir_path, api_key=None):
         with open(dir_path+'/settings.json') as f:
             settings = json.load(f)
+
+        # Pass the API key if it exists
+        if api_key:
+            settings['openai_api_key'] = api_key
+        elif 'openai_api_key' in settings:
+            # Use the stored API key if already present
+            pass
 
         print('Chatbot Initialized')
         chatbot = Chatbot(**settings, load_chatbot_from_dir=dir_path)

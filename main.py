@@ -37,6 +37,8 @@ def streamlit_ui():
         st.session_state['chat_history'] = []
     if "conversation" not in st.session_state:
         st.session_state.conversation = None
+    if "openai_api_key" not in st.session_state:
+        st.session_state.openai_api_key = None
 
     st.set_page_config("Bot-in-a-Box", layout='centered')
 
@@ -78,6 +80,25 @@ def streamlit_ui():
                 st.subheader('Create new chatbot')
             else:
                 st.header(username.title())
+                
+                # Add API Key input section
+                with st.expander("API Settings", expanded=False):
+                    api_key = st.text_input("OpenAI API Key", 
+                                            type="password", 
+                                            placeholder="Enter your OpenAI API key",
+                                            value=st.session_state.openai_api_key if st.session_state.openai_api_key else "")
+                    
+                    if st.button("Save API Key"):
+                        if api_key:
+                            st.session_state.openai_api_key = api_key
+                            # If a chatbot exists, update it with the new API key
+                            if 'chatbot' in st.session_state:
+                                st.session_state['chatbot'].llm.openai_api_key = api_key
+                                st.session_state['chatbot'].embeddings_model.openai_api_key = api_key
+                            st.success("API key saved successfully!")
+                        else:
+                            st.error("Please enter a valid API key")
+                
                 if "file_uploader_key" not in st.session_state:
                     st.session_state["file_uploader_key"] = 0
                     
@@ -119,6 +140,10 @@ def streamlit_ui():
             if username != "admin":
                 if 'chatbot' not in st.session_state:
                     st.session_state['chatbot'] = Chatbot.load_chatbot(f'chatbots/{username}')
+                    # Apply user's API key if it exists
+                    if st.session_state.openai_api_key:
+                        st.session_state['chatbot'].llm.openai_api_key = st.session_state.openai_api_key
+                        st.session_state['chatbot'].embeddings_model.openai_api_key = st.session_state.openai_api_key
                 if st.button("Clear chat history"):
                     st.session_state['chat_history'] = []
             else:
@@ -134,6 +159,21 @@ def streamlit_ui():
                             tmp_file.write(pdf_doc.read())
 
                 st.title("Settings")
+                
+                # Add API Key input for admin as well
+                with st.expander("API Settings", expanded=False):
+                    api_key = st.text_input("Default OpenAI API Key", 
+                                          type="password", 
+                                          placeholder="Enter a default OpenAI API key",
+                                          value=st.session_state.openai_api_key if st.session_state.openai_api_key else "")
+                    
+                    if st.button("Save Default API Key"):
+                        if api_key:
+                            st.session_state.openai_api_key = api_key
+                            st.success("Default API key saved successfully!")
+                        else:
+                            st.error("Please enter a valid API key")
+                
                 with st.expander('Data preparation', expanded=False):
                     chunk_size = constants.CHUNK_SIZE
                     chunk_overlap = constants.CHUNK_OVERLAP
@@ -204,6 +244,12 @@ def streamlit_ui():
                                     llm_model=llm_name,
                                     verbose=False,
                                 )
+                                
+                                # Apply user's API key if it exists
+                                if st.session_state.openai_api_key:
+                                    st.session_state['chatbot'].llm.openai_api_key = st.session_state.openai_api_key
+                                    st.session_state['chatbot'].embeddings_model.openai_api_key = st.session_state.openai_api_key
+                                
                                 st.session_state['chat_history'] = []
                                 st.toast("Done! You can now chat with AI.")
 
@@ -268,29 +314,18 @@ def streamlit_ui():
             if "docs" in msg:
                 create_streamlit_chat_history(msg["docs"], msg["scores"])
 
-        user_query = st.chat_input(disabled='chatbot' not in st.session_state)
+        # Check if API key is missing and chatbot exists
+        if 'chatbot' in st.session_state and not st.session_state.openai_api_key:
+            st.warning("⚠️ No OpenAI API key detected. Please add your API key in the sidebar to use the chatbot.")
+            user_query = st.chat_input(disabled=True)
+        else:
+            user_query = st.chat_input(disabled='chatbot' not in st.session_state)
+            
         if user_query:
             st.session_state['chat_history'].append({"role": "user", "content": user_query})
             st.chat_message("user").write(user_query)
             logger.info(f"Query: {user_query}")
             answer, docs, scores = st.session_state['chatbot'].query(user_query)
-
-            # answer, docs, scores,cb = st.session_state['chatbot'].query(user_query)
-            # try:
-            #     with open(f'chatbots/{username}/{st.session_state["chatbot"].memory_filename}' ,'r') as file:
-            #         chat = json.load(file)
-            # except:
-            #     chat = {'User':[],'Response':[],'Context':[],'Cost': [] }
-            # chat['User'].append(user_query)
-            # chat['Response'].append(answer)
-            # chat['Context'].append({f'{os.path.basename(i.metadata["name"])} Section {i.metadata["Section"]}': i.page_content for i in docs})
-            # chat['Cost'].append(f'Total Tokens {cb.total_tokens} ({cb.prompt_tokens} for input and rest for completion)  Total Cost ${cb.total_cost}')
-            # try:
-            #     with open( f'chatbots/{username}/{st.session_state["chatbot"].memory_filename}' ,'w') as file:
-            #         json.dump(chat,file)
-            # except:
-            #     with open(st.session_state['chatbot'].memory_filename,'w') as file:
-            #         json.dump(chat,file)
                 
             st.session_state['chat_history'].append({"role": "assistant", "content": answer, "docs": docs, "scores": scores})
             logger.info(f"Response: {answer}")
@@ -302,11 +337,15 @@ def streamlit_ui():
                 
             create_streamlit_chat_history(docs, scores)
 
-        def save_chatbot(name, passowrd, **settings):
+        def save_chatbot(name, password, **settings):
             if os.path.exists(f'chatbots/{name}'):
                 st.error(f"Chatbot with name **{name}** already exists.")
                 return
             os.makedirs(f'chatbots/{name}/docs')
+
+            # Add the API key to settings if available
+            if st.session_state.openai_api_key:
+                settings['openai_api_key'] = st.session_state.openai_api_key
 
             with open(f'chatbots/{name}/settings.json', 'w') as f:
                 json.dump(settings, f, indent=4)
@@ -316,11 +355,16 @@ def streamlit_ui():
 
             if 'chatbot' not in st.session_state:
                 st.session_state['chatbot'] = Chatbot(**settings)
+                # Apply API key if available
+                if st.session_state.openai_api_key:
+                    st.session_state['chatbot'].llm.openai_api_key = st.session_state.openai_api_key
+                    st.session_state['chatbot'].embeddings_model.openai_api_key = st.session_state.openai_api_key
+                    
             st.session_state['chatbot'].save_docs_embeddings(f'chatbots/{name}/vectorstore')
 
             with open('config.yaml') as file:
                 tmp_config = yaml.load(file, Loader=SafeLoader)
-            tmp_config['credentials']['usernames'][name] = {'name': name, 'password': passowrd}
+            tmp_config['credentials']['usernames'][name] = {'name': name, 'password': password}
             with open('config.yaml', 'w') as f:
                 yaml.dump(tmp_config, f, default_flow_style=False, sort_keys=False)
 
