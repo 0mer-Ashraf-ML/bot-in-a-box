@@ -22,6 +22,7 @@ deprecation==2.1.0
 distro==1.9.0
 docx2txt==0.8
 extra-streamlit-components==0.1.70
+faiss-cpu
 fastapi==0.110.0
 filelock==3.13.1
 flatbuffers==23.5.26
