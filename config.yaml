@@ -1,0 +1,12 @@
+credentials:
+  usernames:
+    admin:
+      name: admin
+      password: adminpass
+    demo:
+      name: demo
+      password: demodemo
+cookie:
+  expiry_days: 30
+  key: random_signature_key
+  name: random_cookie_name
