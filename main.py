@@ -17,9 +17,9 @@ from chatbot import Chatbot
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-if not os.path.exists('tmp'):
+if not os.path.exists('./tmp'):
     os.makedirs('tmp',exist_ok=True)
-if not os.path.exists('chatbots'):
+if not os.path.exists('./chatbots'):
     os.makedirs('chabtbots',exist_ok=True)
 
 def streamlit_ui():
