@@ -7,6 +7,6 @@ credentials:
       name: demo
       password: demodemo
 cookie:
-  expiry_days: 30
+  expiry_days: 15
   key: random_signature_key
   name: random_cookie_name
