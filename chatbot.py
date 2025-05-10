@@ -78,21 +78,20 @@ class Chatbot:
         self.openai_api_key = openai_api_key
         
         # Use custom API key for llm_s and llm_r if provided
-        self.llm_s = llm_s
-        self.llm_r = llm_r
-        if self.openai_api_key and 'gpt' in llm_s.model_name:
+       
+        if self.openai_api_key :
             self.llm_s = ChatOpenAI(
-                temperature=llm_s.temperature,
-                max_tokens=llm_s.max_tokens,
+                temperature=0.2,
+                max_tokens=2000,
                 model=self.llm_model_name,
-                request_timeout=llm_s.request_timeout,
+                request_timeout=2000,
                 openai_api_key=self.openai_api_key
             )
             self.llm_r = ChatOpenAI(
-                temperature=llm_r.temperature,
-                max_tokens=llm_r.max_tokens,
+                temperature=0.2,
+                max_tokens=200,
                 model="gpt-4.1-mini",
-                request_timeout=llm_r.request_timeout,
+                request_timeout=2000,
                 openai_api_key=self.openai_api_key
             )
         
