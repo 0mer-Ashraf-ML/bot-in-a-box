@@ -139,11 +139,20 @@ def streamlit_ui():
 
             if username != "admin":
                 if 'chatbot' not in st.session_state:
-                    st.session_state['chatbot'] = Chatbot.load_chatbot(f'chatbots/{username}')
-                    # Apply user's API key if it exists
+                    # Load chatbot with the user's API key
+                    st.session_state['chatbot'] = Chatbot.load_chatbot(f'chatbots/{username}', api_key=st.session_state.openai_api_key)
+                    
+                    # Ensure the API key is properly set for both the main LLM and embeddings model
                     if st.session_state.openai_api_key:
                         st.session_state['chatbot'].llm.openai_api_key = st.session_state.openai_api_key
                         st.session_state['chatbot'].embeddings_model.openai_api_key = st.session_state.openai_api_key
+                        
+                        # Update the API key for the LLM chain models as well
+                        if hasattr(st.session_state['chatbot'], 'llm_s') and 'gpt' in st.session_state['chatbot'].llm_s.model_name:
+                            st.session_state['chatbot'].llm_s.openai_api_key = st.session_state.openai_api_key
+                        if hasattr(st.session_state['chatbot'], 'llm_r') and 'gpt' in st.session_state['chatbot'].llm_r.model_name:
+                            st.session_state['chatbot'].llm_r.openai_api_key = st.session_state.openai_api_key
+                            
                 if st.button("Clear chat history"):
                     st.session_state['chat_history'] = []
             else:
@@ -243,6 +252,7 @@ def streamlit_ui():
                                     memory_max_tokens=memory_max_tokens,
                                     llm_model=llm_name,
                                     verbose=False,
+                                    openai_api_key = api_key
                                 )
                                 
                                 # Apply user's API key if it exists
@@ -359,7 +369,7 @@ def streamlit_ui():
                 if st.session_state.openai_api_key:
                     st.session_state['chatbot'].llm.openai_api_key = st.session_state.openai_api_key
                     st.session_state['chatbot'].embeddings_model.openai_api_key = st.session_state.openai_api_key
-                    
+                        
             st.session_state['chatbot'].save_docs_embeddings(f'chatbots/{name}/vectorstore')
 
             with open('config.yaml') as file:
@@ -367,7 +377,6 @@ def streamlit_ui():
             tmp_config['credentials']['usernames'][name] = {'name': name, 'password': password}
             with open('config.yaml', 'w') as f:
                 yaml.dump(tmp_config, f, default_flow_style=False, sort_keys=False)
-
 
             save_modal.close()
             st.toast(f"Chatbot **{name}** has been saved successfully.", icon='🎉')
@@ -406,6 +415,7 @@ def streamlit_ui():
                                 memory_max_tokens=memory_max_tokens,
                                 llm_model=llm_name,
                                 verbose=False,
+                                openai_api_key = api_key
                             )
 
 

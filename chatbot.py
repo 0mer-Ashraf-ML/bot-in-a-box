@@ -200,23 +200,29 @@ class Chatbot:
 
 
     def _init_vector_store(self):
+        # Initialize embeddings model with API key if provided
         if 'Google' in self.embedding_model_name:
             self.embeddings_model = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
         elif 'text-embedding' in self.embedding_model_name:
             if self.openai_api_key:
+                print('here')
                 self.embeddings_model = OpenAIEmbeddings(model=self.embedding_model_name, openai_api_key=self.openai_api_key)
             else:
-                self.embeddings_model = OpenAIEmbeddings(model=self.embedding_model_name)
+                print(self.openai_api_key)
+                self.embeddings_model = OpenAIEmbeddings(model=self.embedding_model_name, openai_api_key=self.openai_api_key)
 
+        # Load existing vector store or create a new one
         if self.load_chatbot_from_dir:
             self.vectorstore_dir = self.load_chatbot_from_dir+'/vectorstore'
             if self.vector_store_name == 'faiss':
+                # Ensure we're using the embeddings model with the user's API key
                 vector_store = FAISS.load_local(self.vectorstore_dir, self.embeddings_model)
             elif self.vector_store_name == 'chroma':
                 vector_store = Chroma(persist_directory=self.vectorstore_dir,
-                                      embedding_function=self.embeddings_model)
+                                    embedding_function=self.embeddings_model)
             return vector_store
 
+        # Create new vector store with chunks from documents
         chunks = self._read_pdf_and_make_chunks(self.documents)
 
         if not os.path.exists('tmp'):
@@ -226,13 +232,11 @@ class Chatbot:
         if self.vector_store_name == 'faiss':
             vector_store = FAISS.from_documents(chunks, embedding=self.embeddings_model)
             vector_store.save_local(self.vectorstore_dir) 
-
-            
-                
         elif self.vector_store_name == 'chroma':
             vector_store = Chroma.from_documents(chunks, embedding=self.embeddings_model, persist_directory=self.vectorstore_dir)
             
         return vector_store
+
 
     def delete_doc_from_vstore(self,name_of_deletion):
         def faiss_to_df(store): # convert vectore store to dataframe to easily get target ids
