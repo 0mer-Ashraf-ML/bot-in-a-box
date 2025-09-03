@@ -73,7 +73,7 @@ mypy-extensions==1.0.0
 numpy==1.26.4
 oauthlib==3.2.2
 onnxruntime==1.17.1
-openai
+openai== 1.104.2
 opentelemetry-api==1.23.0
 opentelemetry-exporter-otlp-proto-common==1.23.0
 opentelemetry-exporter-otlp-proto-grpc==1.23.0
@@ -139,7 +139,7 @@ tornado==6.4
 tqdm==4.66.2
 typer==0.9.0
 typing-inspect==0.9.0
-typing_extensions==4.10.0
+typing_extensions>=4.11,<5
 tzdata==2024.1
 tzlocal==5.2
 urllib3==2.2.1
