@@ -79,14 +79,26 @@ class Chatbot:
         
         # Use custom API key for llm_s and llm_r if provided
        
-        if self.openai_api_key :
-            self.llm_s = ChatOpenAI(
-                temperature=0.2,
-                max_tokens=2000,
-                model=self.llm_model_name,
-                request_timeout=2000,
-                openai_api_key=self.openai_api_key
-            )
+        if self.openai_api_key:
+            # Check if llm_model_name is GPT-5 series
+            if 'gpt-5' in self.llm_model_name.lower():
+                self.llm_s = ChatOpenAI(
+                    temperature=1,
+                    model=self.llm_model_name,
+                    request_timeout=2000,
+                    openai_api_key=self.openai_api_key,
+                    model_kwargs={"max_completion_tokens": 2000}
+                )
+            else:
+                self.llm_s = ChatOpenAI(
+                    temperature=0.2,
+                    max_tokens=2000,
+                    model=self.llm_model_name,
+                    request_timeout=2000,
+                    openai_api_key=self.openai_api_key
+                )
+            
+            # For llm_r, this is using gpt-4.1-mini which is not a GPT-5 model
             self.llm_r = ChatOpenAI(
                 temperature=0.2,
                 max_tokens=200,
@@ -331,17 +343,35 @@ class Chatbot:
         if 'Google' in self.llm_model_name:
             llm = GoogleGenerativeAI(model="gemini-pro")
         else:
-            if self.openai_api_key:
-                llm = ChatOpenAI(temperature=0,
-                                max_tokens=4000,
-                                model=self.llm_model_name,
-                                request_timeout=120,
-                                openai_api_key=self.openai_api_key)
+            # Check if it's a GPT-5 model that has different parameter requirements
+            if 'gpt-5' in self.llm_model_name.lower():
+                if self.openai_api_key:
+                    llm = ChatOpenAI(
+                        temperature=1,
+                        model=self.llm_model_name,
+                        request_timeout=120,
+                        openai_api_key=self.openai_api_key,
+                        model_kwargs={"max_completion_tokens": 4000}
+                    )
+                else:
+                    llm = ChatOpenAI(
+                        temperature=1,  # Don't set temperature, let it use default
+                        model=self.llm_model_name,
+                        request_timeout=120,
+                        model_kwargs={"max_completion_tokens": 4000}
+                    )
             else:
-                llm = ChatOpenAI(temperature=0,
-                                max_tokens=4000,
-                                model=self.llm_model_name,
-                                request_timeout=120)
+                if self.openai_api_key:
+                    llm = ChatOpenAI(temperature=0,
+                                    max_tokens=4000,
+                                    model=self.llm_model_name,
+                                    request_timeout=120,
+                                    openai_api_key=self.openai_api_key)
+                else:
+                    llm = ChatOpenAI(temperature=0,
+                                    max_tokens=4000,
+                                    model=self.llm_model_name,
+                                    request_timeout=120)
         return llm
 
 

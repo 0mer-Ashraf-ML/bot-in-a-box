@@ -66,7 +66,7 @@ The output style should be consistent to input. No important information should 
 PROMPT_FOR_SUMMARY_VARIABLES = ('response')
 
  
-LLMS = ('gpt-4.1-nano','gpt-3.5-turbo', 'gpt-4o-mini')
+LLMS = ('gpt-4o', 'gpt-4o-mini','gpt-5','gpt-5-mini','gpt-5-nano')
 DEFAULT_LLM = LLMS[0]
 
 RETRIEVAL_METHOD = ("Vector store-backed", "MultiQueryRetriever", "Contextual compression")
